@@ -40,6 +40,8 @@ jobs:
 
       - name: Replace boot.img with custom kernel
         run: |
+          # Remove dangling symlink and copy custom kernel
+          rm -f /tmp/postmarketOS-export/boot.img
           cp custom-boot.img /tmp/postmarketOS-export/boot.img
 
       - name: Upload final images
