@@ -1,1 +1,51 @@
+name: Build postmarketOS rootfs + custom kernel
 
+on:
+  workflow_dispatch:
+    inputs:
+      kernel_url:
+        description: 'Direct URL to your custom boot.img'
+        required: true
+        default: 'https://github.com/ArcTici7/pmos/releases/download/pre-alpha/boot.img'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y git python3 bc bison flex libssl-dev \
+            device-tree-compiler cpio abootimg
+
+      - name: Install pmbootstrap
+        run: |
+          git clone --depth=1 https://gitlab.postmarketos.org/postmarketOS/pmbootstrap.git
+          mkdir -p ~/.local/bin
+          ln -s "$PWD/pmbootstrap/pmbootstrap.py" ~/.local/bin/pmbootstrap
+          pmbootstrap --version
+
+      - name: Initialize pmbootstrap (xiaomi-miatoll)
+        run: |
+          echo -e '\n\nedge\nxiaomi\nmiatoll\n\nphosh\n\n\n\n\n\n\n\n\n\n\n' | pmbootstrap init || true
+
+      - name: Build rootfs only
+        run: |
+          pmbootstrap install --password 147147 --split
+          pmbootstrap export
+
+      - name: Download custom kernel
+        run: |
+          wget -O custom-boot.img "${{ github.event.inputs.kernel_url }}"
+
+      - name: Replace boot.img with custom kernel
+        run: |
+          cp custom-boot.img /tmp/postmarketOS-export/boot.img
+
+      - name: Upload final images
+        uses: actions/upload-artifact@v4
+        with:
+          name: pmos-custom-kernel
+          path: |
+            /tmp/postmarketOS-export/boot.img
+            /tmp/postmarketOS-export/xiaomi-miatoll-root.img
